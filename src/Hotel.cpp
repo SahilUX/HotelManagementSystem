@@ -122,7 +122,8 @@ void Hotel::checkOut(int roomNumber) {
         if (custIt != customers.end()) {
             custIt->setCheckOutDate(toDate);
             int daysStayed = custIt->calculateDaysStayed();
-            double amount = daysStayed * it->getPrice();
+            double roomPrice = it->getPrice();
+            double amount = daysStayed * roomPrice;
             billing.addBill(*custIt, amount, "Room stay for " + to_string(daysStayed) + " days");
         }
 
