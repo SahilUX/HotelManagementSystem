@@ -12,12 +12,14 @@ public:
     void book(const string& customerName, const string& fromDate);
     void checkout();
     void display() const;
-    void displayroomnumbers() const;
+    void displaynodesc() const;
+    void displayWithCustomer() const;
 
     int getNumber() const;
     string getType() const;
     double getPrice() const;
     string getDescription() const;
+    string getBookedBy() const;
 
 private:
     int number;

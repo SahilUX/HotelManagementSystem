@@ -11,7 +11,7 @@ using namespace std;
 
 class Hotel {
 public:
-    Hotel(const string& name);
+    explicit Hotel(const string& name);
     void initialize(const string& filename);
     void displayDescription() const;
     void checkIn(const string& customerName, const string& fromDate, int roomNumber);

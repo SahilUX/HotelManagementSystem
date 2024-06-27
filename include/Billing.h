@@ -10,11 +10,12 @@ class Billing {
 public:
     struct Bill {
         Customer customer;
+        int roomNumber;
         double amount;
         string details;
     };
 
-    void addBill(const Customer& customer, double amount, const string& details);
+    void addBill(const Customer& customer, int roomNumber, double amount, const string& details);
     void display() const;
     const vector<Bill>& getBills() const;
     void clear();

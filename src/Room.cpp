@@ -1,16 +1,41 @@
 #include "../include/Room.h"
 #include <iostream>
-#include <algorithm>
-#include <cctype>
 #include <locale>
+#include <algorithm>
 
+using namespace std;
+
+// Helper function to trim whitespace from a string
+static string trim(const string &s) {
+    auto start = s.begin();
+    while (start != s.end() && isspace(*start)) {
+        start++;
+    }
+
+    auto end = s.end();
+    do {
+        end--;
+    } while (distance(start, end) > 0 && isspace(*end));
+    return string(start, end + 1);
+}
+
+// Helper function to convert a string to lowercase
+static string toLower(const string &s) {
+    string result = s;
+    transform(result.begin(), result.end(), result.begin(), [](unsigned char c) { return tolower(c); });
+    return result;
+}
+
+// Constructor for Room class
 Room::Room(int number, const string& type, const string& description)
     : number(number), type(type), description(description), available(true) {}
 
+// Check if the room is available
 bool Room::isAvailable() const {
     return available;
 }
 
+// Book the room for a customer
 void Room::book(const string& customerName, const string& fromDate) {
     available = false;
     bookedBy = customerName;
@@ -18,6 +43,7 @@ void Room::book(const string& customerName, const string& fromDate) {
     this->toDate = "";
 }
 
+// Check out the room
 void Room::checkout() {
     available = true;
     bookedBy.clear();
@@ -25,47 +51,55 @@ void Room::checkout() {
     toDate.clear();
 }
 
+// Display the room details
 void Room::display() const {
-    cout << "Room Number: " << number << ", Type: " << type << ", Description: " << description << endl;
+    if (type == "suite") {
+        cout << "Room Number: " << number << ", Type: " << type << ", Description: " << description << endl;
+    } else {
+        cout << "Room Number: " << number << ", Type: " << type << " room, Description: " << description << endl;
+    }
 }
 
-void Room::displayroomnumbers() const {
-    cout << "Room Number: " << number << endl;
+// Display room details without description
+void Room::displaynodesc() const {
+    cout << "Room Number: " << number << ", Type: " << type << endl;
 }
 
+// Display room details along with customer information if booked
+void Room::displayWithCustomer() const {
+    cout << "Room Number: " << number << ", Type: " << type;
+    if (!available) {
+        cout << ", Booked By: " << bookedBy << ", From Date: " << fromDate;
+    }
+    cout << endl;
+}
+
+// Get the room number
 int Room::getNumber() const {
     return number;
 }
 
+// Get the room type
 string Room::getType() const {
-    return type;
+    string trimmedType = trim(type);
+    string lowerType = toLower(trimmedType);
+    return lowerType;
 }
 
-// Helper function to trim whitespace from both ends of a string
-static inline std::string trim(const std::string &s) {
-    auto start = s.begin();
-    while (start != s.end() && std::isspace(*start)) {
-        start++;
-    }
-
-    auto end = s.end();
-    do {
-        end--;
-    } while (std::distance(start, end) > 0 && std::isspace(*end));
-
-    return std::string(start, end + 1);
+// Get the room description
+string Room::getDescription() const {
+    return description;
 }
 
-// Helper function to convert a string to lowercase
-static inline std::string toLower(const std::string &s) {
-    std::string result = s;
-    std::transform(result.begin(), result.end(), result.begin(), [](unsigned char c) { return std::tolower(c); });
-    return result;
+// Get the name of the customer who booked the room
+string Room::getBookedBy() const {
+    return bookedBy;
 }
 
+// Get the price of the room based on type
 double Room::getPrice() const {
-    std::string trimmedType = trim(type);
-    std::string lowerType = toLower(trimmedType);
+    string trimmedType = trim(type);
+    string lowerType = toLower(trimmedType);
 
     if (lowerType == "single") return 100.00;
     if (lowerType == "double") return 150.00;
@@ -73,7 +107,4 @@ double Room::getPrice() const {
     if (lowerType == "suite") return 250.00;
 
     return 0.00;
-}
-string Room::getDescription() const {
-    return description;
 }

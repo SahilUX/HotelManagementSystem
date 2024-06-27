@@ -3,14 +3,41 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
-#include <iomanip>
 #include <regex>
 #include <limits>
 
 using namespace std;
 
+// Function to validate if a given date is valid
+bool isValidDate(int year, int month, int day) {
+    // Check if the year is valid
+    if (year < 2024) return false;
+
+    // Check if the month is valid
+    if (month < 1 || month > 12) return false;
+
+    // Check if the day is valid for the given month
+    if (day < 1) return false;
+
+    // Days in each month
+    const int daysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+
+    // Check for leap year
+    if (month == 2) {
+        bool isLeap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+        if (isLeap && day <= 29) return true;
+        if (!isLeap && day <= 28) return true;
+    } else {
+        if (day <= daysInMonth[month - 1]) return true;
+    }
+
+    return false;
+}
+
+// Constructor to initialize the hotel with a name
 Hotel::Hotel(const string& name) : name(name) {}
 
+// Initializes the hotel system from a file
 void Hotel::initialize(const string& filename) {
     ifstream file(filename);
     if (!file) {
@@ -18,9 +45,16 @@ void Hotel::initialize(const string& filename) {
         return;
     }
 
+    // Check if the file is empty
+    if (file.peek() == ifstream::traits_type::eof()) {
+        cerr << "Error: Initialization file " << filename << " is empty." << endl;
+        file.close();
+        return;
+    }
+
     rooms.clear();
-    customers.clear();
     billing.clear();
+    customers.clear();
 
     string line;
     while (getline(file, line)) {
@@ -29,18 +63,16 @@ void Hotel::initialize(const string& filename) {
         iss >> type;
         if (type == "ROOM") {
             int roomNumber;
-            string roomType;
-            string description;
-            iss >> roomNumber;
-            iss.ignore();
-            getline(iss, roomType, '"');
+            string roomType, description;
+            iss >> roomNumber >> roomType;
+            getline(iss, description, '"');
             getline(iss, description, '"');
             rooms.emplace_back(roomNumber, roomType, description);
         } else if (type == "CUSTOMER") {
             string name, fromDate, toDate;
             int roomNumber;
             iss >> ws;
-            getline(iss, name, ',');
+            getline(iss, name, ' ');
             iss >> fromDate >> toDate >> roomNumber;
             Customer customer(name, fromDate, roomNumber);
             customer.setCheckOutDate(toDate);
@@ -53,16 +85,15 @@ void Hotel::initialize(const string& filename) {
                 roomIt->book(name, fromDate);
             }
         } else if (type == "BILL") {
-            string name;
+            string name, details;
             double amount;
-            string details;
             iss >> ws;
-            getline(iss, name, ',');
+            getline(iss, name, ' ');
             iss >> amount;
             getline(iss, details);
             for (const auto& customer : customers) {
                 if (customer.getName() == name) {
-                    billing.addBill(customer, amount, details);
+                    billing.addBill(customer, customer.getRoomNumber(), amount, details);
                     break;
                 }
             }
@@ -73,14 +104,16 @@ void Hotel::initialize(const string& filename) {
     cout << "System initialized from " << filename << endl;
 }
 
+// Displays the hotel description
 void Hotel::displayDescription() const {
     cout << "Hotel Name: " << name << endl;
     cout << "Rooms Information: " << endl;
     for (const auto& room : rooms) {
-        room.displayroomnumbers();
+        room.displaynodesc();
     }
 }
 
+// Checks in a customer to a room
 void Hotel::checkIn(const string& customerName, const string& fromDate, int roomNumber) {
     auto it = find_if(rooms.begin(), rooms.end(), [roomNumber](const Room& room) {
         return room.getNumber() == roomNumber;
@@ -95,6 +128,7 @@ void Hotel::checkIn(const string& customerName, const string& fromDate, int room
     }
 }
 
+// Checks out a customer from a room
 void Hotel::checkOut(int roomNumber) {
     auto it = find_if(rooms.begin(), rooms.end(), [roomNumber](const Room& room) {
         return room.getNumber() == roomNumber;
@@ -105,14 +139,20 @@ void Hotel::checkOut(int roomNumber) {
         cout << "Enter check-out date (YYYY-MM-DD): ";
         while (true) {
             cin >> toDate;
-            regex dateRegex("\\d{4}-\\d{2}-\\d{2}");
+            regex dateRegex(R"(\d{4}-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9]))");
             if (cin && regex_match(toDate, dateRegex)) {
-                break;
+                int year, month, day;
+                sscanf(toDate.c_str(), "%d-%d-%d", &year, &month, &day);
+                if (isValidDate(year, month, day)) {
+                    break;
+                } else {
+                    cout << "Invalid date. Please enter a valid date in the format YYYY-MM-DD." << endl;
+                }
             } else {
                 cout << "Invalid date format. Please enter a date in the format YYYY-MM-DD." << endl;
-                cin.clear();
-                cin.ignore(numeric_limits<streamsize>::max(), '\n');
             }
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
         }
 
         auto custIt = find_if(customers.begin(), customers.end(), [roomNumber](const Customer& customer) {
@@ -124,7 +164,7 @@ void Hotel::checkOut(int roomNumber) {
             int daysStayed = custIt->calculateDaysStayed();
             double roomPrice = it->getPrice();
             double amount = daysStayed * roomPrice;
-            billing.addBill(*custIt, amount, "Room stay for " + to_string(daysStayed) + " days");
+            billing.addBill(*custIt, roomNumber, amount, "Room stay for " + to_string(daysStayed) + " days");
         }
 
         it->checkout();
@@ -134,6 +174,7 @@ void Hotel::checkOut(int roomNumber) {
     }
 }
 
+// Views all available rooms
 void Hotel::viewAvailableRooms() const {
     cout << "Available Rooms: " << endl;
     for (const auto& room : rooms) {
@@ -143,15 +184,17 @@ void Hotel::viewAvailableRooms() const {
     }
 }
 
+// Views all booked rooms
 void Hotel::viewBookedRooms() const {
     cout << "Booked Rooms: " << endl;
     for (const auto& room : rooms) {
         if (!room.isAvailable()) {
-            room.display();
+            room.displayWithCustomer();
         }
     }
 }
 
+// Views rooms by their type
 void Hotel::viewRoomsByType(const string& type) const {
     cout << "Rooms of Type: " << type << endl;
     for (const auto& room : rooms) {
@@ -161,11 +204,12 @@ void Hotel::viewRoomsByType(const string& type) const {
     }
 }
 
+// Views the billing information
 void Hotel::viewBilling() const {
-    cout << "Billing Information: " << endl;
     billing.display();
 }
 
+// Saves the current state of the hotel system to a file
 void Hotel::saveState(const string& filename) const {
     ofstream file(filename);
     if (!file) {
@@ -174,15 +218,15 @@ void Hotel::saveState(const string& filename) const {
     }
 
     for (const auto& room : rooms) {
-        file << "ROOM " << room.getNumber() << " " << room.getType() << " " << room.getDescription() << "\n";
+        file << "ROOM " << room.getNumber() << " " << room.getType() << " \"" << room.getDescription() << "\"\n";
     }
 
     for (const auto& customer : customers) {
-        file << "CUSTOMER " << customer.getName() << "," << customer.getCheckInDate() << " " << customer.getCheckOutDate() << " " << customer.getRoomNumber() << "\n";
+        file << "CUSTOMER " << customer.getName() << " " << customer.getCheckInDate() << " " << customer.getCheckOutDate() << " " << customer.getRoomNumber() << "\n";
     }
 
     for (const auto& bill : billing.getBills()) {
-        file << "BILL " << bill.customer.getName() << "," << bill.amount << " " << bill.details << "\n";
+        file << "BILL " << bill.customer.getName() << " " << bill.amount << " " << bill.details << "\n";
     }
 
     file.close();
