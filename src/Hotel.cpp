@@ -9,20 +9,11 @@
 using namespace std;
 
 // Function to validate if a given date is valid
-bool isValidDate(int year, int month, int day) {
-    // Check if the year is valid
+bool isValidDate1(int year, int month, int day) {
     if (year < 2024) return false;
-
-    // Check if the month is valid
     if (month < 1 || month > 12) return false;
-
-    // Check if the day is valid for the given month
     if (day < 1) return false;
-
-    // Days in each month
     const int daysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-
-    // Check for leap year
     if (month == 2) {
         bool isLeap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
         if (isLeap && day <= 29) return true;
@@ -30,7 +21,6 @@ bool isValidDate(int year, int month, int day) {
     } else {
         if (day <= daysInMonth[month - 1]) return true;
     }
-
     return false;
 }
 
@@ -143,7 +133,7 @@ void Hotel::checkOut(int roomNumber) {
             if (cin && regex_match(toDate, dateRegex)) {
                 int year, month, day;
                 sscanf(toDate.c_str(), "%d-%d-%d", &year, &month, &day);
-                if (isValidDate(year, month, day)) {
+                if (isValidDate1(year, month, day)) {
                     break;
                 } else {
                     cout << "Invalid date. Please enter a valid date in the format YYYY-MM-DD." << endl;
